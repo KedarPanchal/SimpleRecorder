@@ -5,14 +5,20 @@ from threading import Thread
 def record_inputs(terminator: str="esc"):
     mouse_events = []
     keyboard_events = []
-    mouse.hook(mouse_events.append)
+
+    mouse.hook(lambda x : accurate_record(mouse_events, x))
     keyboard.hook(keyboard_events.append)
 
     keyboard.wait(terminator)
     mouse.unhook_all()
     keyboard.unhook_all()
-    del keyboard_events[len(keyboard_events) - 1]
     return (mouse_events, keyboard_events)
+
+def accurate_record(mouse_arr, event):
+    if isinstance(event, mouse.MoveEvent):
+        mouse_arr.append(mouse.MoveEvent(*(mouse.get_position()), event.time))
+    else:
+        mouse_arr.append(event)
 
 def play_inputs(mouse_events: list, keyboard_events:list, speed: float=1):
     mouse_thread = Thread(target=lambda : mouse.play(events=mouse_events, speed_factor=speed))
