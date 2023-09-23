@@ -16,6 +16,7 @@ def record_inputs(terminator: str="f8"):
 
     keyboard_events = keyboard.record(terminator)
     mouse.unhook_all()
+    del keyboard_events[len(keyboard_events) - 1]
     return (mouse_events, keyboard_events)
 
 """
@@ -64,9 +65,6 @@ def keyboard_play(events: list, start_time, speed_factor: float=1):
         last_time = event.time
 
         key = event.scan_code or event.name
-        if event.event_type == keyboard.KEY_DOWN:
-            print(event)
-            keyboard.press(key)
-        else:
-            keyboard.release(key)
+        keyboard.press(key) if event.event_type == keyboard.KEY_DOWN else keyboard.release(key)
+        
     keyboard.restore_modifiers(state)
