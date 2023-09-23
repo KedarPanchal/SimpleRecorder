@@ -13,7 +13,7 @@ layout = [
     [gui.Push(), gui.Button("Exit"), gui.Button("Clear Recording"), gui.Push()]
 ]
 
-window = gui.Window(title="Simple Recorder", layout=layout, element_justification='l')
+window = gui.Window(title="Simple Recorder", layout=layout, element_justification='l', icon="C:/Users/kedar/00_Kedar/Python Projects/SimpleRecorder/out/imgs/SimpleRecorder.ico", titlebar_icon="C:/Users/kedar/00_Kedar/Python Projects/SimpleRecorder/out/imgs/SimpleRecorder.ico")
 
 mouse_inputs = []
 keyboard_inputs = []
@@ -35,10 +35,10 @@ while True:
         window["RECORD_OUTPUT"].update("No recording")
     elif event == "Run":
         try:
-            speed = float(values[3]) 
+            speed_factor = float(values[3]) 
             window["ACTIVITY"].update("Running...")
             for i in range((1 if (not values[2]) else int(values[2]))):
-                play_inputs(mouse_events=mouse_inputs, keyboard_events=keyboard_inputs, speed=speed)
+                play_inputs(mouse_events=mouse_inputs, keyboard_events=keyboard_inputs, speed=speed_factor)
             window["ACTIVITY"].update("Execution completed")
         except ValueError:
             play_inputs(mouse_events=mouse_inputs, keyboard_events=keyboard_inputs)

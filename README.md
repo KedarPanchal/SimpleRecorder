@@ -5,4 +5,6 @@ Click the record button to record your mouse and keyboard movements. Press whate
 
 Click run to run the recordings at the number of times and speed specified.  
 
+The default key to terminate the recording is F8, the default speed is 1, and the default number of times to run is 1.
+
 Click Exit to exit the program, and click Clear Recording to reset the recording to a blank slate.
