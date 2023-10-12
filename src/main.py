@@ -1,5 +1,8 @@
 from record import *
+from threading import Thread
 import PySimpleGUI as gui
+import mouse
+import keyboard
 
 gui.theme("DarkGreen2")
 layout = [
@@ -17,31 +20,37 @@ window = gui.Window(title="Simple Recorder", layout=layout, element_justificatio
 
 mouse_inputs = []
 keyboard_inputs = []
+is_recording = False
 
 while True:
     event, values = window.read()
 
     if event == gui.WIN_CLOSED or event == "Exit":
         break
-    elif event == "Record":
+    elif event == "Record" and not is_recording:
+        is_recording = True
         try:
-            mouse_inputs, keyboard_inputs = record_inputs() if (not values[0]) else record_inputs(values[0])
+            mouse_inputs, keyboard_inputs = record_inputs() if not values[0] else record_inputs(values[0])
             window["RECORD_OUTPUT"].update("Input recorded successfully")
         except ValueError:
             window["RECORD_OUTPUT"].update("Input was unable to be recorded")
             continue
-    elif event == "Clear Recording":
+        finally:
+            is_recording = False
+    elif event == "Clear Recording" and not is_recording:
         mouse_inputs = keyboard_inputs = []
         window["RECORD_OUTPUT"].update("No recording")
-    elif event == "Run":
+    elif event == "Run" and not is_recording:
         try:
             speed_factor = float(values[3]) 
             window["ACTIVITY"].update("Running...")
-            for i in range((1 if (not values[2]) else int(values[2]))):
+            for i in range((1 if (not values[2] or int(values[2]) < 1) else int(values[2]))):
                 play_inputs(mouse_events=mouse_inputs, keyboard_events=keyboard_inputs, speed=speed_factor)
             window["ACTIVITY"].update("Execution completed")
         except ValueError:
             play_inputs(mouse_events=mouse_inputs, keyboard_events=keyboard_inputs)
             window["ACTIVITY"].update("Execution completed")
 
+mouse.unhook_all()
+keyboard.unhook_all()
 window.close()
