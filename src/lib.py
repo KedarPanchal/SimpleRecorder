@@ -1,7 +1,21 @@
 import mouse
 import keyboard
 import time
+import PySimpleGUI as gui
 from threading import Thread
+
+
+"""
+Returns if a string can be parsed as a float or not
+"""
+def check_parse(x: str):
+    try:
+        float(x)
+    except ValueError:
+        return False
+    else:
+        return True
+        
 
 """ 
 Records inputs until a terminator key is pressed. Stores these recorded inputs inside two arrays for both mouse and keyboard inputs and returns a tuple of these events
@@ -37,7 +51,6 @@ keyboard_events: the list of keyboard events to play
 speed: the speed at which these events should be played (1x speed is the default)
 """
 def play_inputs(mouse_events: list, keyboard_events:list, speed: float=1):
-    print(keyboard_events)
     keyboard.start_recording()
     keyboard.stop_recording()
     mouse_thread = Thread(target=lambda : mouse.play(events=mouse_events, speed_factor=speed))
