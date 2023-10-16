@@ -1,7 +1,6 @@
 import mouse
 import keyboard
 import time
-import PySimpleGUI as gui
 from threading import Thread
 
 """ 
@@ -38,6 +37,7 @@ keyboard_events: the list of keyboard events to play
 speed: the speed at which these events should be played (1x speed is the default)
 """
 def play_inputs(mouse_events: list, keyboard_events:list, speed: float=1):
+    print(keyboard_events)
     keyboard.start_recording()
     keyboard.stop_recording()
     mouse_thread = Thread(target=lambda : mouse.play(events=mouse_events, speed_factor=speed))
