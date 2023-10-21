@@ -2,57 +2,107 @@ import mouse
 import keyboard
 import time
 import PySimpleGUI as gui
+from threading import Event
 from threading import Thread
 
+color1 = "#3B503D"
+color2 = "#C8CF94"
 
-"""
-Returns if a string can be parsed as a float or not
-"""
-def check_parse(x: str):
-    try:
-        float(x)
-    except ValueError:
-        return False
-    else:
-        return True
+terminator = "f8"
+event = None
+mouse_events = []
+keyboard_events = []
+is_recording = False
+
+def events_fn(window: gui.Window) -> None:
+    # This is awful and should not exist
+    global terminator
+    global event
+    global mouse_events
+    global keyboard_events
+    global is_recording
+
+    record_thread = None
+    while True:
+        event, values = window.read()
         
+        if event == gui.WIN_CLOSED or event == "Exit":
+            return
+        elif event == "Clear Recording" and not is_recording:
+            mouse_events = []
+            keyboard_events = []
+            window["RECORD_OUTPUT"].update("No recording")
+        elif event == "Record":
+            if not is_recording:
+                is_recording = True
+                window["Record"].update(button_color=f"{color1} on {color2}")
+                window["RECORD_OUTPUT"].update("Recording...")
+                terminator = "f8" if not values[0] else values[0]
+                event = ""
+                record_thread = Thread(target= lambda : record_fn(window))
+                record_thread.start()
+            else:
+                is_recording = False
+                del mouse_events[len(mouse_events) - 1]
+                del mouse_events[len(mouse_events) - 1]
 
-""" 
-Records inputs until a terminator key is pressed. Stores these recorded inputs inside two arrays for both mouse and keyboard inputs and returns a tuple of these events
-terminator: the name of the key that terminates the recording
-returns: a tuple containing an array of the mouse events and an array of the keyboard events
-"""
-def record_inputs(terminator: str="f8"):
+        elif event == "Run" and not is_recording:
+            window["Run"].update(button_color=f"{color1} on {color2}")
+            window["ACTIVITY"].update("Running...")
+            
+            for i in range(1 if not check_parse(values[2]) or int(values[2])  < 1 else int(values[2])):
+                play_inputs(1 if not check_parse(values[3]) or float(values[3]) < 1 else float(values[3]))
+            
+            window["Run"].update(button_color=f"{color2} on {color1}")
+            window["ACTIVITY"].update("Execution completed")
+
+def record_fn(window: gui.Window) -> None:
+    # This is awful and should not exist
+    global terminator
+    global event
+    global mouse_events
+    global keyboard_events
+    global is_recording
+
     mouse_events = []
     keyboard_events = []
 
     mouse.hook(lambda x : accurate_record(mouse_events, x))
+    keyboard.hook(lambda x : keyboard_events.append(x))
+    last_key = "" if len(keyboard_events) == 0 else keyboard_events[len(keyboard_events) - 1].name
+    while event != "Record" and event != "Exit" and event != gui.WIN_CLOSED and last_key != terminator:
+        last_key = "" if len(keyboard_events) == 0 else keyboard_events[len(keyboard_events) - 1].name
 
-    keyboard_events = keyboard.record(terminator)
+    if last_key == terminator:
+        del keyboard_events[len(keyboard_events) - 1]
+        
     mouse.unhook_all()
-    del keyboard_events[len(keyboard_events) - 1]
-    return (mouse_events, keyboard_events)
+    keyboard.unhook_all()
+    is_recording = False
 
-"""
-Changes the position of a mouse event to accurately reflect its position on the screen then appends it to a list of mouse events
-mouse_arr: the list of mouse events to pass the accurately position mouse event into
-event: the mouse event whose position needs to be changed to be accurate
-"""
-def accurate_record(mouse_arr, event):
-    if isinstance(event, mouse.MoveEvent):
-        mouse_arr.append(mouse.MoveEvent(*(mouse.get_position()), event.time))
+    window["Record"].update(button_color=f"{color2} on {color1}")
+    window["RECORD_OUTPUT"].update("Input recorded")
+            
+    return
+
+def accurate_record(mouse_arr: list, m_event) -> None:
+    if isinstance(m_event, mouse.MoveEvent):
+        mouse_arr.append(mouse.MoveEvent(*(mouse.get_position()), m_event.time))
     else:
-        mouse_arr.append(event)
+        mouse_arr.append(m_event)
 
-"""
-Plays the inputs from a list of mouse events and keyboard events simultaneously at a certain speed
-mouse_events: the list of mouse events to play
-keyboard_events: the list of keyboard events to play
-speed: the speed at which these events should be played (1x speed is the default)
-"""
-def play_inputs(mouse_events: list, keyboard_events:list, speed: float=1):
-    keyboard.start_recording()
-    keyboard.stop_recording()
+def check_parse(x: str) -> bool:
+    try:
+        float(x)
+    except(ValueError):
+        return False
+    else:
+        return True
+
+def play_inputs(speed: float):
+    global mouse_events
+    global keyboard_events
+
     mouse_thread = Thread(target=lambda : mouse.play(events=mouse_events, speed_factor=speed))
     keyboard_thread = Thread(target=lambda : keyboard_play(events=keyboard_events, start_time=min(mouse_events[0].time, keyboard_events[0].time), speed_factor=speed))
 
@@ -62,12 +112,6 @@ def play_inputs(mouse_events: list, keyboard_events:list, speed: float=1):
     mouse_thread.join()
     keyboard_thread.join()
 
-"""
-Plays the keypresses in an array of keyboard events. Resets the state of the keyboard when the function is called and restores it afterward
-events: the list of keypresses to play
-start_time: the time that the first keypress or mouse event occurred
-speed_factor: the speed at which these keypresses should be played (1x speed is the default)
-"""
 def keyboard_play(events: list, start_time, speed_factor: float=1):
     state = keyboard.stash_state()
     last_time = start_time
