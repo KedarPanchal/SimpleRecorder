@@ -15,10 +15,7 @@ def main() -> None:
         [gui.Push(), gui.Button("Exit"), gui.Button("Clear Recording"), gui.Push()]
     ]
 
-    window = gui.Window(title="Simple Recorder", layout=layout, element_justification='l')
-
-    mouse_events = []
-    keyboard_events = []
+    window = gui.Window(title="Simple Recorder", layout=layout, element_justification='l', icon="C:/Users/kedar/00_Kedar/Python Projects/SimpleRecorder/out/imgs/SimpleRecorder.ico", titlebar_icon="C:/Users/kedar/00_Kedar/Python Projects/SimpleRecorder/out/imgs/SimpleRecorder.ico")
     
     events_fn(window)
 
