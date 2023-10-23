@@ -1,9 +1,8 @@
-import mouse
-import keyboard
 import time
 import PySimpleGUI as gui
-from threading import Event
+from pynput import mouse, keyboard
 from threading import Thread
+from record import *
 
 color1 = "#3B503D"
 color2 = "#C8CF94"
@@ -57,39 +56,39 @@ def events_fn(window: gui.Window) -> None:
             window["ACTIVITY"].update("Execution completed")
 
 def record_fn(window: gui.Window) -> None:
-    # This is awful and should not exist
-    global terminator
-    global event
     global mouse_events
     global keyboard_events
+    global event
     global is_recording
 
     mouse_events = []
     keyboard_events = []
 
-    mouse.hook(lambda x : accurate_record(mouse_events, x))
-    keyboard.hook(lambda x : keyboard_events.append(x))
-    last_key = "" if len(keyboard_events) == 0 else keyboard_events[len(keyboard_events) - 1].name
-    while event != "Record" and event != "Exit" and event != gui.WIN_CLOSED and last_key != terminator:
-        last_key = "" if len(keyboard_events) == 0 else keyboard_events[len(keyboard_events) - 1].name
+    last_key = ""
 
-    if last_key == terminator:
-        del keyboard_events[len(keyboard_events) - 1]
-        
-    mouse.unhook_all()
-    keyboard.unhook_all()
+    mouse_listener = mouse.Listener(
+        on_move=lambda x, y: mouse_events.append(on_move(x, y)),
+        on_click=lambda x, y, button, pressed: mouse_events.append(on_click(button, pressed)),                  
+        on_scroll=lambda x, y, dx, dy: mouse_events.append(on_scroll(dx, dy)))
+    mouse_listener.start()
+
+    keyboard_listener = keyboard.Listener(
+        on_press=lambda key : keyboard_events.append(on_press(key)),
+        on_release=lambda key : keyboard_events.append(on_release(key))
+    )
+    keyboard_listener.start()
+
+    while event != "Record" and event != "Exit" and event != gui.WIN_CLOSED and last_key != terminator:
+        last_key = keyboard_events[len(keyboard_events) - 1]
+
+    mouse_listener.stop()
+    keyboard_listener.stop()
     is_recording = False
 
     window["Record"].update(button_color=f"{color2} on {color1}")
     window["RECORD_OUTPUT"].update("Input recorded")
-            
-    return
 
-def accurate_record(mouse_arr: list, m_event) -> None:
-    if isinstance(m_event, mouse.MoveEvent):
-        mouse_arr.append(mouse.MoveEvent(*(mouse.get_position()), m_event.time))
-    else:
-        mouse_arr.append(m_event)
+    return
 
 def check_parse(x: str) -> bool:
     try:
