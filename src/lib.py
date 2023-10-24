@@ -2,8 +2,8 @@ import mouse
 import keyboard
 import time
 import PySimpleGUI as gui
-from threading import Event
 from threading import Thread
+from operator import attrgetter
 
 color1 = "#3B503D"
 color2 = "#C8CF94"
@@ -50,8 +50,8 @@ def events_fn(window: gui.Window) -> None:
             window["Run"].update(button_color=f"{color1} on {color2}")
             window["ACTIVITY"].update("Running...")
             
-            for i in range(1 if not check_parse(values[2]) or int(values[2])  < 1 else int(values[2])):
-                play_inputs(1 if not check_parse(values[3]) or float(values[3]) < 1 else float(values[3]))
+            for _ in range(1 if not check_parse(values[2]) or int(values[2])  < 0 else int(values[2])):
+                play_inputs(1 if not check_parse(values[3]) or float(values[3]) < 0 else float(values[3]))
             
             window["Run"].update(button_color=f"{color2} on {color1}")
             window["ACTIVITY"].update("Execution completed")
@@ -103,14 +103,28 @@ def play_inputs(speed: float):
     global mouse_events
     global keyboard_events
 
-    mouse_thread = Thread(target=lambda : mouse.play(events=mouse_events, speed_factor=speed))
-    keyboard_thread = Thread(target=lambda : keyboard_play(events=keyboard_events, start_time=min(mouse_events[0].time, keyboard_events[0].time), speed_factor=speed))
+    all_events = mouse_events + keyboard_events
+    all_events = sorted(all_events, key=attrgetter("time"))
 
-    mouse_thread.start()
-    keyboard_thread.start()
+    state = keyboard.stash_state()
+    last_time = all_events[0].time
 
-    mouse_thread.join()
-    keyboard_thread.join()
+    for event in all_events:
+        if speed > 0:
+            time.sleep((event.time - last_time)/speed)
+        last_time = event.time
+
+        if isinstance(event, keyboard.KeyboardEvent):
+            key = event.scan_code or event.name
+            keyboard.press(key) if event.event_type == keyboard.KEY_DOWN else keyboard.release(key)
+        elif isinstance(event, mouse.ButtonEvent):
+            mouse.press(event.button) if event.event_type == mouse.DOWN else mouse.release(event.button)
+        elif isinstance(event, mouse.MoveEvent):
+            mouse.move(event.x, event.y)
+        elif isinstance(event, mouse.WheelEvent):
+            mouse.wheel(event.delta)
+    
+    keyboard.restore_modifiers(state)
 
 def keyboard_play(events: list, start_time, speed_factor: float=1):
     state = keyboard.stash_state()
